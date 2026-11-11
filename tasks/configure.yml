@@ -39,10 +39,6 @@
 
 # Two phases: forwarding keys reset other keys (accept_redirects & co.) in the kernel, so apply them,
 # re-read the live state, then apply whatever still differs.
-- name: Start with no refused settings
-  ansible.builtin.set_fact:
-    __lh_sysctl_failed: []
-
 - name: Apply the forwarding keys
   ansible.builtin.include_tasks: apply_running.yml
   vars:
@@ -55,6 +51,18 @@
   ansible.builtin.include_tasks: apply_running.yml
   vars:
     __lh_sysctl_forwarding: false
+
+- name: Re-read the live values to find the settings the kernel refused
+  ansible.builtin.include_tasks: facts.yml
+
+- name: Collect the settings the kernel refused
+  ansible.builtin.set_fact:
+    __lh_sysctl_failed: >-
+      {%- set out = [] -%}
+      {%- for s in __lh_sysctl_state if s.actual != s.expected -%}
+      {%- set _ = out.append(s.key) -%}
+      {%- endfor -%}
+      {{ out }}
 
 - name: Stop if settings could not be applied
   ansible.builtin.fail:

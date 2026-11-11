@@ -1,5 +1,6 @@
 ---
-# Applies the differing keys of one phase (forwarding keys or the rest) and records those the kernel refused.
+# Applies the differing keys of one phase (forwarding keys or the rest). Some procps builds exit 0 with a
+# warning when /proc/sys is read-only, so refusals are detected by re-reading the values (configure.yml).
 - name: Set the running values that differ
   ansible.builtin.command: "sysctl -w {{ item.key }}={{ item.expected }}"
   loop: >-
@@ -8,10 +9,6 @@
   loop_control:
     label: "{{ item.key }}"
   register: __lh_sysctl_set
-  changed_when: __lh_sysctl_set.rc == 0
+  changed_when: __lh_sysctl_set.rc == 0 and __lh_sysctl_set.stderr == ''
   failed_when: false
   when: item.actual != item.expected
-
-- name: Collect the settings the kernel refused
-  ansible.builtin.set_fact:
-    __lh_sysctl_failed: "{{ __lh_sysctl_failed + (__lh_sysctl_set.results | selectattr('rc', 'defined') | rejectattr('rc', 'eq', 0) | map(attribute='item.key') | list) }}"

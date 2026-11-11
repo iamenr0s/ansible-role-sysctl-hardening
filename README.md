@@ -42,14 +42,14 @@ CI & Release (maintainers)
 ----------------------------
 A single workflow (`.github/workflows/molecule.yml`) runs lint and the full Molecule distro matrix on pushes to `main`, PRs, and `v*` tags. On `v*` tags, a `release` job publishes to Ansible Galaxy after all tests pass.
 
-The Galaxy API key lives in the `galaxy` GitHub environment, which only `v*` tags may target. One-time setup:
+One-time setup:
 
 ```bash
 # Galaxy publishing key (environment-scoped, get it from galaxy.ansible.com/ui/token)
-gh secret set GALAXY_API_KEY --env galaxy --repo iamenr0s/ansible-role-swap
+gh secret set GALAXY_API_KEY --repo iamenr0s/ansible-role-sysctl-hardening
 
 # Code scanning notifications (Slack webhook URL; for Discord append /slack to the webhook URL)
-gh secret set SECURITY_ALERT_WEBHOOK --env galaxy --repo iamenr0s/ansible-role-swap
+gh secret set SECURITY_ALERT_WEBHOOK --repo iamenr0s/ansible-role-sysctl-hardening
 ```
 
 `.github/workflows/code-scanning-notify.yml` polls the code-scanning API every 6 hours and posts new or updated open alerts to that webhook (GitHub Actions cannot trigger on `code_scanning_alert` directly).
@@ -75,4 +75,4 @@ This project is licensed under the [MIT License](LICENSE).
 
 Author: iamenr0s
 
-Galaxy: `iamenr0s.ansible_role_vault`
+Galaxy: `iamenr0s.ansible-role-sysctl-hardening`
