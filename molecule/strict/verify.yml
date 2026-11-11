@@ -1,0 +1,15 @@
+---
+- name: Verify
+  hosts: all
+  become: false
+  gather_facts: true
+  tasks:
+    - name: Read the persistent file
+      ansible.builtin.slurp:
+        src: /etc/sysctl.d/99-zz-linux-hardening.conf
+      register: __f
+
+    - name: The strict key that exists everywhere is present
+      ansible.builtin.assert:
+        that: "'kernel.sysrq = 0' in (__f.content | b64decode)"
+        quiet: true

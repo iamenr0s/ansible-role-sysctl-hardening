@@ -1,0 +1,71 @@
+---
+name: Molecule
+on:
+  push:
+    branches: [main]
+    tags: ['v[0-9]+.[0-9]+.[0-9]+*']
+    paths-ignore: ['**/*.md']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: pip install ansible ansible-lint yamllint
+      - run: yamllint .
+      - run: ansible-lint
+
+  molecule:
+    name: ${{ matrix.distro }}
+    runs-on: ubuntu-latest
+    continue-on-error: ${{ matrix.experimental || false }}
+    strategy:
+      fail-fast: false
+      matrix:
+        distro: [almalinux9, debian13, ubuntu2404, fedora44, almalinux8, almalinux10, rockylinux9, debian12, ubuntu2204, fedora42, fedora43, rockylinux8, rockylinux10]
+        include:
+          # EL8 managed-node Python 3.6 needs ansible-core 2.16
+          - {distro: almalinux8, experimental: true, ansible_pin: "ansible<10"}
+          - {distro: almalinux10, experimental: true}
+          - {distro: rockylinux9, experimental: true}
+          - {distro: debian12, experimental: true}
+          - {distro: ubuntu2204, experimental: true}
+          - {distro: fedora42, experimental: true}
+          - {distro: fedora43, experimental: true}
+          - {distro: rockylinux8, experimental: true, ansible_pin: "ansible<10"}
+          - {distro: rockylinux10, experimental: true}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: pip install "${{ matrix.ansible_pin || 'ansible' }}" molecule "molecule-plugins[podman]"
+      - name: Run all scenarios
+        run: molecule test --all --exclude vagrant --exclude vagrant-relabel  # vagrant scenarios need libvirt: run locally
+        env:
+          PY_COLORS: "1"
+          ANSIBLE_FORCE_COLOR: "1"
+          MOLECULE_DISTRO: ${{ matrix.distro }}
+
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    environment: galaxy
+    needs: [lint, molecule]
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: ansible-actions/ansible-galaxy-action@v1.2.0
+        with:
+          galaxy_api_key: ${{ secrets.GALAXY_API_KEY }}

@@ -1,0 +1,10 @@
+---
+# Regression: switching ip_forward off resets accept_redirects in the kernel, so the role must order its writes.
+- name: Prepare (forwarding on, like a libvirt or Docker host)
+  hosts: all
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Turn IPv4 forwarding on
+      ansible.builtin.command: sysctl -w net.ipv4.ip_forward=1
+      changed_when: false

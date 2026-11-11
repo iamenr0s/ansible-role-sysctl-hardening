@@ -1,0 +1,51 @@
+---
+# Read-only. Sets __lh_sysctl_state: [{key, expected, actual}] for keys that exist on this kernel,
+# and __lh_sysctl_unavailable for keys that do not.
+- name: Build the desired settings
+  ansible.builtin.set_fact:
+    __lh_sysctl_desired: >-
+      {{ __linux_hardening_sysctl_base
+         | combine(__linux_hardening_sysctl_strict if linux_hardening_profile == 'cis_level2' else {})
+         | combine({'net.ipv4.ip_forward': (1 if linux_hardening_sysctl_ip_forward | bool else 0)}
+                   if linux_hardening_sysctl_ip_forward is not none else {})
+         | combine({'net.ipv4.conf.all.rp_filter': linux_hardening_sysctl_rp_filter | int,
+                    'net.ipv4.conf.default.rp_filter': linux_hardening_sysctl_rp_filter | int}
+                   if linux_hardening_sysctl_rp_filter is not none else {})
+         | combine({'net.ipv6.conf.all.accept_ra': linux_hardening_sysctl_ipv6_accept_ra | int,
+                    'net.ipv6.conf.default.accept_ra': linux_hardening_sysctl_ipv6_accept_ra | int}
+                   if linux_hardening_sysctl_ipv6_accept_ra is not none else {})
+         | combine(linux_hardening_sysctl_extra)
+         | combine(linux_hardening_sysctl_overrides)
+         | dict2items | rejectattr('value', 'none') | items2dict }}
+
+- name: Read the running values (a missing file means the key does not exist on this kernel)
+  ansible.builtin.slurp:
+    src: "/proc/sys/{{ item.key | replace('.', '/') }}"
+  loop: "{{ __lh_sysctl_desired | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+  register: __lh_sysctl_reads
+  failed_when: false
+  check_mode: false
+
+- name: Split into available and unavailable
+  ansible.builtin.set_fact:
+    __lh_sysctl_avail: "{{ __lh_sysctl_reads.results | selectattr('content', 'defined') | list }}"
+    __lh_sysctl_unavailable: "{{ __lh_sysctl_reads.results | rejectattr('content', 'defined') | map(attribute='item.key') | list }}"
+
+- name: Compare running with desired values
+  ansible.builtin.set_fact:
+    __lh_sysctl_state_json: >-
+      {%- set out = [] -%}
+      {%- for r in __lh_sysctl_avail -%}
+      {%- set _ = out.append({'key': r.item.key, 'expected': __lh_sysctl_desired[r.item.key] | string, 'actual': (r.content | b64decode) | trim}) -%}
+      {%- endfor -%}
+      {{ out | to_json }}
+
+# Forwarding keys come first: switching forwarding resets accept_redirects & co. in the kernel, so they
+# must be written (now, and when sysctl --system replays the file at boot) before the settings they reset.
+- name: Normalise state (forwarding keys first, the rest sorted)
+  ansible.builtin.set_fact:
+    __lh_sysctl_state: >-
+      {{ (__lh_sysctl_state_json | from_json | selectattr('key', 'search', '(ip_forward|forwarding)$') | sort(attribute='key') | list)
+         + (__lh_sysctl_state_json | from_json | rejectattr('key', 'search', '(ip_forward|forwarding)$') | sort(attribute='key') | list) }}

@@ -1,0 +1,35 @@
+---
+
+dependencies: []
+
+galaxy_info:
+  role_name: sysctl_hardening
+  author: iamenr0s
+  description: Audit-first kernel sysctl hardening, sole owner of sysctl settings (iamenr0s.linux_hardening).
+  license: MIT
+  min_ansible_version: "2.16"
+  platforms:
+    - name: "EL"
+      versions:
+        - "8"
+        - "9"
+        - "10"
+    - name: "Fedora"
+      versions:
+        - "42"
+        - "43"
+        - "44"
+    - name: "Debian"
+      versions:
+        - "bookworm"
+        - "trixie"
+    - name: "Ubuntu"
+      versions:
+        - "jammy"
+        - "noble"
+  galaxy_tags:
+    - security
+    - sysctl
+    - kernel
+    - hardening
+    - compliance

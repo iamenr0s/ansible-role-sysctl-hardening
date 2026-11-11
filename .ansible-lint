@@ -1,0 +1,8 @@
+---
+profile: production
+exclude_paths:
+  - .github/
+  - .ansible/
+skip_list:
+  # Collection convention is linux_hardening_<domain>_*, not <role_name>_* (docs/architecture.md).
+  - var-naming[no-role-prefix]

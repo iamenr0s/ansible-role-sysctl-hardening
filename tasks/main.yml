@@ -1,0 +1,43 @@
+---
+# audit: read-only. remediate: write the persistent file and set the running values.
+- name: Run sysctl_hardening
+  when: linux_hardening_sysctl_enabled | bool
+  block:
+    - name: Validate linux_hardening_mode
+      ansible.builtin.assert:
+        that: linux_hardening_mode in ['audit', 'remediate']
+        fail_msg: "linux_hardening_mode must be 'audit' or 'remediate', got '{{ linux_hardening_mode }}'"
+        quiet: true
+
+    - name: Warn about legacy kernel_parameters_* variables
+      ansible.builtin.debug:
+        msg: >-
+          Legacy variables found: {{ __lh_sysctl_legacy | join(', ') }}. Only kernel_parameters_common is
+          still honoured (as linux_hardening_sysctl_extra); the rest are ignored (docs/migration.md).
+      vars:
+        __lh_sysctl_legacy: "{{ query('ansible.builtin.varnames', '^kernel_parameters_') }}"
+      when: __lh_sysctl_legacy | length > 0
+
+    - name: Audit (read-only)
+      ansible.builtin.include_tasks: audit.yml
+      when: linux_hardening_mode == 'audit'
+
+    - name: Remediate
+      when: linux_hardening_mode == 'remediate'
+      block:
+        - name: Require explicit remediation confirmation
+          ansible.builtin.assert:
+            that: linux_hardening_confirm_remediation | bool
+            fail_msg: >-
+              Remediation changes kernel settings. Set linux_hardening_confirm_remediation: true
+              to proceed (run with linux_hardening_mode: audit to preview).
+            quiet: true
+
+        - name: Configure
+          ansible.builtin.include_tasks: configure.yml
+
+        - name: Verify effective configuration
+          ansible.builtin.include_tasks: audit.yml
+          vars:
+            __lh_sysctl_audit_fatal: true
+          when: linux_hardening_verify | bool

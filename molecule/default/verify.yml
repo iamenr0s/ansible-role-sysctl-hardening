@@ -1,0 +1,47 @@
+---
+- name: Verify
+  hosts: all
+  become: false
+  gather_facts: true
+  tasks:
+    - name: Audit again, without failing
+      ansible.builtin.include_role:
+        name: "{{ playbook_dir }}/../.."  # noqa: role-name[path]
+      vars:
+        linux_hardening_mode: audit
+        linux_hardening_fail_on_error: false
+        linux_hardening_sysctl_extra: {vm.swappiness: 10}
+        linux_hardening_sysctl_overrides: {fs.suid_dumpable: null}
+
+    - name: The persistent file is correct (only runtime values may differ)
+      ansible.builtin.assert:
+        that:
+          - linux_hardening_sysctl_findings | selectattr('key', 'search', '^persistent file') | list | length == 0
+        quiet: true
+
+    - name: Read the persistent file
+      ansible.builtin.slurp:
+        src: /etc/sysctl.d/99-zz-linux-hardening.conf
+      register: __f
+
+    - name: Assert content and removal of an overridden key
+      ansible.builtin.assert:
+        that:
+          - "'kernel.randomize_va_space = 2' in (__f.content | b64decode)"
+          - "'net.ipv4.tcp_syncookies = 1' in (__f.content | b64decode)"
+          - "'vm.swappiness = 10' in (__f.content | b64decode)"
+          - "'fs.suid_dumpable' not in (__f.content | b64decode)"
+          - "'kernel.sysrq' not in (__f.content | b64decode)"
+        quiet: true
+
+    - name: Forwarding is off and the setting it resets is still 0 (ordering regression)
+      ansible.builtin.slurp:
+        src: "/proc/sys/net/ipv4/{{ item }}"
+      loop: [ip_forward, conf/all/accept_redirects]
+      register: __r
+      failed_when: (__r.content | b64decode | trim) != '0'
+
+    - name: Forwarding is listed first in the persistent file
+      ansible.builtin.assert:
+        that: (__f.content | b64decode).splitlines() | reject('match', '^#') | first == 'net.ipv4.ip_forward = 0'
+        quiet: true

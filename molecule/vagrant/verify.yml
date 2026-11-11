@@ -1,0 +1,30 @@
+---
+- name: Verify the running kernel
+  hosts: all
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Read running values
+      ansible.builtin.command: "sysctl -n {{ item.key }}"
+      loop:
+        - {key: kernel.randomize_va_space, want: "2"}
+        - {key: net.ipv4.tcp_syncookies, want: "1"}
+        - {key: net.ipv4.conf.all.accept_redirects, want: "0"}
+        - {key: kernel.sysrq, want: "0"}
+        - {key: net.ipv4.ip_forward, want: "0"}
+      loop_control:
+        label: "{{ item.key }}"
+      register: __v
+      changed_when: false
+      failed_when: __v.stdout != item.want
+
+    - name: The settings survive sysctl --system (persistent file wins)
+      ansible.builtin.command: sysctl --system
+      changed_when: false
+
+    - name: Audit is compliant on the real kernel
+      ansible.builtin.include_role:
+        name: "{{ playbook_dir }}/../.."  # noqa: role-name[path]
+      vars:
+        linux_hardening_mode: audit
+        linux_hardening_profile: cis_level2

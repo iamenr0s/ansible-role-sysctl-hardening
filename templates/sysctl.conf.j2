@@ -1,0 +1,6 @@
+{{ ansible_managed | comment }}
+# iamenr0s.linux_hardening.sysctl_hardening. Do not edit.
+# Only keys that exist on this kernel are listed.
+{% for s in __lh_sysctl_state %}
+{{ s.key }} = {{ s.expected }}
+{% endfor %}

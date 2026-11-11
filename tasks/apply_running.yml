@@ -1,0 +1,17 @@
+---
+# Applies the differing keys of one phase (forwarding keys or the rest) and records those the kernel refused.
+- name: Set the running values that differ
+  ansible.builtin.command: "sysctl -w {{ item.key }}={{ item.expected }}"
+  loop: >-
+    {{ (__lh_sysctl_state | selectattr('key', 'search', '(ip_forward|forwarding)$') | list) if __lh_sysctl_forwarding
+       else (__lh_sysctl_state | rejectattr('key', 'search', '(ip_forward|forwarding)$') | list) }}
+  loop_control:
+    label: "{{ item.key }}"
+  register: __lh_sysctl_set
+  changed_when: __lh_sysctl_set.rc == 0
+  failed_when: false
+  when: item.actual != item.expected
+
+- name: Collect the settings the kernel refused
+  ansible.builtin.set_fact:
+    __lh_sysctl_failed: "{{ __lh_sysctl_failed + (__lh_sysctl_set.results | selectattr('rc', 'defined') | rejectattr('rc', 'eq', 0) | map(attribute='item.key') | list) }}"

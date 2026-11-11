@@ -1,0 +1,6 @@
+*.tar.gz
+tests/output/
+.molecule/
+__pycache__/
+.venv/
+.ansible/

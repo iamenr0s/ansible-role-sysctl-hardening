@@ -1,0 +1,20 @@
+---
+argument_specs:
+  main:
+    short_description: Audit and apply kernel sysctl hardening; the only role that writes sysctl settings.
+    options:
+      linux_hardening_mode: {type: str, default: audit, choices: [audit, remediate], description: "audit is read-only."}
+      linux_hardening_confirm_remediation: {type: bool, default: false, description: "Must be true before remediate changes anything."}
+      linux_hardening_profile: {type: str, default: cis_level1, choices: [baseline, cis_level1, cis_level2], description: "cis_level2 adds the stricter settings."}
+      linux_hardening_backup: {type: bool, default: true, description: "Back up the persistent file when it changes."}
+      linux_hardening_verify: {type: bool, default: true, description: "Re-audit after remediation."}
+      linux_hardening_fail_on_error: {type: bool, default: true, description: "Fail the play when audit finds deviations."}
+      linux_hardening_sysctl_enabled: {type: bool, default: true, description: "Run the role."}
+      linux_hardening_sysctl_dropin: {type: path, default: /etc/sysctl.d/99-zz-linux-hardening.conf, description: "Persistent settings file."}
+      linux_hardening_sysctl_ip_forward: {type: raw, description: "Desired net.ipv4.ip_forward (bool, default false); null leaves it unmanaged."}
+      linux_hardening_sysctl_rp_filter: {type: raw, default: 1, description: "Desired rp_filter (int; 1 strict, 2 loose); null leaves it unmanaged."}
+      linux_hardening_sysctl_ipv6_accept_ra: {type: raw, description: "Desired accept_ra (int); unmanaged by default because 0 can cut IPv6 access."}
+      linux_hardening_sysctl_confirm_disable_forwarding: {type: bool, default: false, description: "Allow switching IPv4 forwarding from on to off."}
+      linux_hardening_sysctl_ignore_errors: {type: bool, default: false, description: "Continue when the kernel refuses a value; failures stay reported."}
+      linux_hardening_sysctl_extra: {type: dict, default: {}, description: "Additional settings as key to value; legacy kernel_parameters_common is honoured."}
+      linux_hardening_sysctl_overrides: {type: dict, default: {}, description: "Change a built-in value, or set null to drop it."}

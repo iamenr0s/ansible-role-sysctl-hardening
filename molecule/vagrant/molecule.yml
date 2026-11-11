@@ -1,0 +1,19 @@
+---
+# Real VM (libvirt): /proc/sys is writable here, unlike in the container scenarios.
+# Run: sg libvirt -c "molecule test -s vagrant"   (box: MOLECULE_VAGRANT_BOX, default almalinux/9)
+role_name_check: 1
+dependency:
+  name: galaxy
+  options:
+    ignore-errors: true
+driver:
+  name: vagrant
+  provider:
+    name: libvirt
+platforms:
+  - name: instance
+    box: ${MOLECULE_VAGRANT_BOX:-almalinux/9}
+    memory: 1024
+    cpus: 1
+provisioner:
+  name: ansible

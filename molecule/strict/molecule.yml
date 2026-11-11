@@ -1,0 +1,22 @@
+---
+role_name_check: 1
+dependency:
+  name: galaxy
+  options:
+    ignore-errors: true
+driver:
+  name: podman
+platforms:
+- name: instance
+  image: docker.io/iamenr0s/docker-${MOLECULE_DISTRO:-almalinux9}-ansible:latest
+  command: ${MOLECULE_DOCKER_COMMAND:-""}
+  volumes:
+  - /sys/fs/cgroup:/sys/fs/cgroup:rw
+  privileged: true
+  pre_build_image: true
+  extra_opts:
+  - --cgroupns=host
+provisioner:
+  name: ansible
+  playbooks:
+    converge: ${MOLECULE_PLAYBOOK:-converge.yml}

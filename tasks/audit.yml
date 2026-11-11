@@ -1,0 +1,52 @@
+---
+- name: Gather sysctl state
+  ansible.builtin.include_tasks: facts.yml
+
+- name: Look at the persistent file
+  ansible.builtin.stat:
+    path: "{{ linux_hardening_sysctl_dropin }}"
+  register: __lh_sysctl_file
+
+- name: Read the persistent file
+  ansible.builtin.slurp:
+    src: "{{ linux_hardening_sysctl_dropin }}"
+  register: __lh_sysctl_content
+  when: __lh_sysctl_file.stat.exists
+
+- name: Compare with desired state
+  ansible.builtin.set_fact:
+    __lh_sysctl_findings: >-
+      {%- set out = [] -%}
+      {%- set failed = __lh_sysctl_failed | default([]) -%}
+      {%- for s in __lh_sysctl_state if s.actual != s.expected -%}
+      {%- set _ = out.append({'key': s.key, 'expected': s.expected, 'actual': s.actual, 'fixable': s.key not in failed}) -%}
+      {%- endfor -%}
+      {%- if not __lh_sysctl_file.stat.exists
+             or (__lh_sysctl_content.content | b64decode) != lookup('ansible.builtin.template', 'sysctl.conf.j2')
+             or __lh_sysctl_file.stat.mode != '0644' -%}
+      {%- set _ = out.append({'key': 'persistent file ' ~ linux_hardening_sysctl_dropin, 'expected': 'present with the desired values', 'actual': 'missing or different', 'fixable': true}) -%}
+      {%- endif -%}
+      {{ out | to_json }}
+
+- name: Record findings
+  ansible.builtin.set_fact:
+    linux_hardening_sysctl_findings: "{{ __lh_sysctl_findings | from_json }}"
+    linux_hardening_sysctl_unavailable: "{{ __lh_sysctl_unavailable }}"
+
+- name: Report sysctl_hardening result
+  ansible.builtin.debug:
+    msg: >-
+      {{ 'COMPLIANT' if linux_hardening_sysctl_findings | length == 0 else linux_hardening_sysctl_findings }}
+      (not present on this kernel, skipped: {{ linux_hardening_sysctl_unavailable | length }})
+
+# After remediation only fixable findings fail the run; keys the kernel refused to set need a human.
+- name: Fail on findings
+  ansible.builtin.fail:
+    msg: "sysctl_hardening found {{ __lh_sysctl_blocking | length }} deviation(s)."
+  vars:
+    __lh_sysctl_blocking: >-
+      {{ linux_hardening_sysctl_findings
+         if (linux_hardening_fail_on_error | bool) and not (__lh_sysctl_audit_fatal | default(false))
+         else linux_hardening_sysctl_findings | selectattr('fixable') | list
+         if (__lh_sysctl_audit_fatal | default(false)) else [] }}
+  when: __lh_sysctl_blocking | length > 0

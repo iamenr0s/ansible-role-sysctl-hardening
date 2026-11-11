@@ -1,0 +1,64 @@
+---
+- name: Gather sysctl state
+  ansible.builtin.include_tasks: facts.yml
+
+- name: Refuse to switch IPv4 forwarding off without consent
+  ansible.builtin.assert:
+    that: linux_hardening_sysctl_confirm_disable_forwarding | bool
+    fail_msg: >-
+      IPv4 forwarding is currently on and would be switched off, which breaks Docker, Podman and
+      Kubernetes networking. Set linux_hardening_sysctl_ip_forward: true to keep it, or
+      linux_hardening_sysctl_confirm_disable_forwarding: true to proceed.
+    quiet: true
+  when: >-
+    __lh_sysctl_state | selectattr('key', 'eq', 'net.ipv4.ip_forward')
+    | selectattr('actual', 'eq', '1') | selectattr('expected', 'eq', '0') | list | length > 0
+
+- name: Ensure the sysctl.d directory exists
+  ansible.builtin.file:
+    path: "{{ linux_hardening_sysctl_dropin | dirname }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Write the persistent settings
+  ansible.builtin.template:
+    src: sysctl.conf.j2
+    dest: "{{ linux_hardening_sysctl_dropin }}"
+    owner: root
+    group: root
+    mode: "0644"
+    backup: "{{ linux_hardening_backup | bool }}"
+
+- name: Ensure the sysctl tool is installed
+  ansible.builtin.package:
+    name: "{{ 'procps-ng' if ansible_facts['os_family'] == 'RedHat' else 'procps' }}"
+    state: present
+    update_cache: true
+
+# Two phases: forwarding keys reset other keys (accept_redirects & co.) in the kernel, so apply them,
+# re-read the live state, then apply whatever still differs.
+- name: Start with no refused settings
+  ansible.builtin.set_fact:
+    __lh_sysctl_failed: []
+
+- name: Apply the forwarding keys
+  ansible.builtin.include_tasks: apply_running.yml
+  vars:
+    __lh_sysctl_forwarding: true
+
+- name: Re-read the live values
+  ansible.builtin.include_tasks: facts.yml
+
+- name: Apply the remaining keys
+  ansible.builtin.include_tasks: apply_running.yml
+  vars:
+    __lh_sysctl_forwarding: false
+
+- name: Stop if settings could not be applied
+  ansible.builtin.fail:
+    msg: "The kernel refused: {{ __lh_sysctl_failed | join(', ') }}. Set linux_hardening_sysctl_ignore_errors: true to continue (e.g. containers)."
+  when:
+    - __lh_sysctl_failed | length > 0
+    - not (linux_hardening_sysctl_ignore_errors | bool)

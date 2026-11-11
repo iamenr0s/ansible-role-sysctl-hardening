@@ -1,0 +1,15 @@
+---
+- name: Converge (cis_level2 adds the strict settings)
+  hosts: all
+  become: false
+  gather_facts: true
+  tasks:
+    - name: Remediate with the strict profile
+      ansible.builtin.include_role:
+        name: "{{ playbook_dir }}/../.."  # noqa: role-name[path]
+      vars:
+        linux_hardening_mode: remediate
+        linux_hardening_confirm_remediation: true
+        linux_hardening_profile: cis_level2
+        linux_hardening_sysctl_ignore_errors: true
+        linux_hardening_sysctl_confirm_disable_forwarding: true   # host forwarding state varies (libvirt turns it on)

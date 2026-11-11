@@ -1,0 +1,26 @@
+---
+# --- Shared collection variables ---
+linux_hardening_mode: audit                    # audit (read-only) | remediate
+linux_hardening_confirm_remediation: false     # must be true for any change
+linux_hardening_profile: cis_level1            # cis_level2 adds the stricter settings in vars/main.yml
+linux_hardening_backup: true
+linux_hardening_verify: true
+linux_hardening_fail_on_error: true
+
+# --- sysctl_hardening (sole owner of sysctl settings in this collection) ---
+linux_hardening_sysctl_enabled: true
+linux_hardening_sysctl_dropin: /etc/sysctl.d/99-zz-linux-hardening.conf   # sorts after 99-sysctl.conf
+
+# Settings that depend on the host's role. null = do not manage.
+linux_hardening_sysctl_ip_forward: false       # set true on routers, Docker/Podman/Kubernetes hosts
+linux_hardening_sysctl_rp_filter: 1            # 2 (loose) for asymmetric routing/Kubernetes
+linux_hardening_sysctl_ipv6_accept_ra: null    # 0 disables SLAAC; unmanaged by default (could cut IPv6 access)
+
+# Turning forwarding off while it is on can break container networking; require explicit consent.
+linux_hardening_sysctl_confirm_disable_forwarding: false
+# Keep going when a value cannot be written (read-only /proc/sys, containers); failures are reported.
+linux_hardening_sysctl_ignore_errors: false
+
+# Add or change settings: {key: value}. A null value removes a setting from the managed set.
+linux_hardening_sysctl_extra: "{{ kernel_parameters_common | default({}) }}"   # legacy name still honoured
+linux_hardening_sysctl_overrides: {}

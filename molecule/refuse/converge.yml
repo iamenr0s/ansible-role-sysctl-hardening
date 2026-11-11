@@ -1,0 +1,21 @@
+---
+- name: Converge (remediation must be refused without confirmation)
+  hosts: all
+  become: false
+  gather_facts: true
+  tasks:
+    - name: Try to remediate without confirming
+      block:
+        - name: Remediate unconfirmed
+          ansible.builtin.include_role:
+            name: "{{ playbook_dir }}/../.."  # noqa: role-name[path]
+          vars:
+            linux_hardening_mode: remediate
+        - name: Fail if the role did not refuse
+          ansible.builtin.fail:
+            msg: Role remediated without confirmation.
+      rescue:
+        - name: Assert the refusal came from the confirmation check
+          ansible.builtin.assert:
+            that: "'confirm_remediation' in ansible_failed_result.msg"
+            quiet: true
