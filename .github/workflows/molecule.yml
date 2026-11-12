@@ -19,7 +19,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
-          python-version: "3.12"
+          python-version: "3.15"
       - run: pip install ansible ansible-lint yamllint
       - run: yamllint .
       - run: ansible-lint
@@ -47,7 +47,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
-          python-version: "3.12"
+          python-version: "3.15"
       - run: pip install "${{ matrix.ansible_pin || 'ansible' }}" molecule "molecule-plugins[podman]"
       - name: Run all scenarios
         run: molecule test --all --exclude vagrant --exclude vagrant-relabel  # vagrant scenarios need libvirt: run locally
