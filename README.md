@@ -7,6 +7,9 @@ Our own selection from common hardening guidance (not a verified CIS mapping): n
 
 Host-role dependent (defaults in `defaults/main.yml`): `ip_forward` (false), `rp_filter` (1), `ipv6_accept_ra` (unmanaged). Add or remove keys with `linux_hardening_sysctl_extra` / `linux_hardening_sysctl_overrides` (null removes a key).
 
+## Variable names and migration
+Variables use the collection-wide `linux_hardening_*` prefix (shared with sibling roles) rather than `sysctl_hardening_*`. Legacy `kernel_parameters_*` variables: only `kernel_parameters_common` is still honoured (as `linux_hardening_sysctl_extra`); move the rest to `linux_hardening_sysctl_extra` / `_overrides`, as the others are ignored.
+
 ## Modes
 `audit` (default) is read-only and sets `linux_hardening_sysctl_findings` (`key, expected, actual, fixable`). `remediate` needs `linux_hardening_confirm_remediation: true`.
 

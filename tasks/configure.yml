@@ -31,6 +31,11 @@
     mode: "0644"
     backup: "{{ linux_hardening_backup | bool }}"
 
+- name: Gather the OS family when facts are disabled
+  ansible.builtin.setup:
+    gather_subset: [min]
+  when: ansible_facts['os_family'] is not defined
+
 - name: Ensure the sysctl tool is installed
   ansible.builtin.package:
     name: "{{ 'procps-ng' if ansible_facts['os_family'] == 'RedHat' else 'procps' }}"
