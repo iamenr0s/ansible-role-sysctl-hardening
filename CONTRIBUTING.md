@@ -9,7 +9,6 @@ Thanks for taking the time to contribute to `iamenr0s.sysctl_hardening`!
 
    ```bash
    pip3 install "ansible<10" molecule molecule-plugins[docker] docker cryptography yamllint ansible-lint
-   ansible-galaxy collection install -r requirements.yml
    ```
 
 ## Making changes
@@ -33,7 +32,7 @@ molecule test
 MOLECULE_DISTRO=ubuntu2404 molecule test
 ```
 
-Molecule uses Podman locally and Docker in CI. The CI matrix covers Debian, Ubuntu, AlmaLinux, Rocky Linux, and Fedora — changes must not break any supported distro (see `upgrade_stable_os` in `defaults/main.yml`).
+Molecule uses Podman locally and Docker in CI. The CI matrix covers Debian, Ubuntu, AlmaLinux, Rocky Linux, and Fedora — changes must not break any supported distro (see `platforms` in `meta/main.yml`).
 
 ## Submitting a pull request
 
