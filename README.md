@@ -2,7 +2,16 @@
 
 # Ansible Role: Sysctl Hardening
 
-Sole owner of kernel sysctl settings in this collection. Writes one drop-in, `/etc/sysctl.d/99-zz-linux-hardening.conf` (sorts after `99-sysctl.conf`), and sets the running values. Keys that do not exist on the running kernel are skipped and reported.
+This role audits and applies kernel sysctl hardening settings on Debian/Ubuntu, RHEL/AlmaLinux/RockyLinux and Fedora servers. It writes one drop-in file, `/etc/sysctl.d/99-zz-linux-hardening.conf` (sorts after `99-sysctl.conf`), and sets the running values.
+
+Features
+--------
+- Audit mode by default: read-only, and reports every deviation. Changes need `linux_hardening_confirm_remediation: true`.
+- Skips and reports keys that do not exist on the running kernel.
+- Refuses to switch IPv4 forwarding off without consent, so Docker, Podman and Kubernetes hosts keep working.
+- Two profiles: `cis_level1` (default) and `cis_level2` with stricter settings.
+- Backs up the drop-in file before changing it.
+- The only role in the `iamenr0s.linux_hardening` collection that writes sysctl settings.
 
 ## What it enforces
 Our own selection from common hardening guidance (not a verified CIS mapping): no ICMP/IP redirects or source routing, martian logging, SYN cookies, ASLR, `kptr_restrict`, `dmesg_restrict`, `yama.ptrace_scope`, `suid_dumpable`, protected hard/symlinks. `cis_level2` adds `sysrq`, protected FIFOs/regular files, `perf_event_paranoid`, `tcp_rfc1337`. Exact list: `vars/main.yml`.
