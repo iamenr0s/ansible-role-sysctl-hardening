@@ -1,4 +1,6 @@
-# sysctl_hardening
+[![Molecule](https://github.com/iamenr0s/ansible-role-sysctl-hardening/actions/workflows/molecule.yml/badge.svg)](https://github.com/iamenr0s/ansible-role-sysctl-hardening/actions/workflows/molecule.yml) ![Ansible Role](https://img.shields.io/ansible/role/d/iamenr0s/ansible_role_sysctl_hardening) [![CodeFactor](https://www.codefactor.io/repository/github/iamenr0s/ansible-role-sysctl-hardening/badge)](https://www.codefactor.io/repository/github/iamenr0s/ansible-role-sysctl-hardening)
+
+# Ansible Role: Sysctl Hardening
 
 Sole owner of kernel sysctl settings in this collection. Writes one drop-in, `/etc/sysctl.d/99-zz-linux-hardening.conf` (sorts after `99-sysctl.conf`), and sets the running values. Keys that do not exist on the running kernel are skipped and reported.
 
@@ -70,6 +72,10 @@ local pipeline commands and pull request checklist. This project follows the
 See [SECURITY.md](SECURITY.md) — GitHub private vulnerability reporting, no
 public issues for security bugs.
 
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for version history and release notes.
+
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
@@ -78,4 +84,4 @@ This project is licensed under the [MIT License](LICENSE).
 
 Author: iamenr0s
 
-Galaxy: `iamenr0s.ansible-role-sysctl-hardening`
+Galaxy: `iamenr0s.ansible_role_sysctl_hardening`
