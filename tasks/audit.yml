@@ -13,24 +13,30 @@
   register: __lh_sysctl_content
   when: __lh_sysctl_file.stat.exists
 
-- name: Compare with desired state
+- name: Compare running values with desired state
   ansible.builtin.set_fact:
     __lh_sysctl_findings: >-
-      {%- set out = [] -%}
-      {%- set failed = __lh_sysctl_failed | default([]) -%}
-      {%- for s in __lh_sysctl_state if s.actual != s.expected -%}
-      {%- set _ = out.append({'key': s.key, 'expected': s.expected, 'actual': s.actual, 'fixable': s.key not in failed}) -%}
-      {%- endfor -%}
-      {%- if not __lh_sysctl_file.stat.exists
-             or (__lh_sysctl_content.content | b64decode) != lookup('ansible.builtin.template', 'sysctl.conf.j2')
-             or __lh_sysctl_file.stat.mode != '0644' -%}
-      {%- set _ = out.append({'key': 'persistent file ' ~ linux_hardening_sysctl_dropin, 'expected': 'present with the desired values', 'actual': 'missing or different', 'fixable': true}) -%}
-      {%- endif -%}
-      {{ out | to_json }}
+      {%- set drift = __lh_sysctl_state | rejectattr('match') | list -%}
+      {{ (drift | rejectattr('key', 'in', __lh_sysctl_failed | default([])) | map('combine', {'fixable': true}) | list)
+         + (drift | selectattr('key', 'in', __lh_sysctl_failed | default([])) | map('combine', {'fixable': false}) | list) }}
+
+- name: Add a finding when the persistent file is missing or different
+  ansible.builtin.set_fact:
+    __lh_sysctl_findings: "{{ __lh_sysctl_findings + [__lh_sysctl_file_finding] }}"
+  vars:
+    __lh_sysctl_file_finding:
+      key: "persistent file {{ linux_hardening_sysctl_dropin }}"
+      expected: present with the desired values
+      actual: missing or different
+      fixable: true
+  when: >-
+    not __lh_sysctl_file.stat.exists
+    or (__lh_sysctl_content.content | b64decode) != lookup('ansible.builtin.template', 'sysctl.conf.j2')
+    or __lh_sysctl_file.stat.mode != '0644'
 
 - name: Record findings
   ansible.builtin.set_fact:
-    linux_hardening_sysctl_findings: "{{ __lh_sysctl_findings | from_json }}"
+    linux_hardening_sysctl_findings: "{{ __lh_sysctl_findings }}"
     linux_hardening_sysctl_unavailable: "{{ __lh_sysctl_unavailable }}"
 
 - name: Report sysctl_hardening result
@@ -44,9 +50,9 @@
   ansible.builtin.fail:
     msg: "sysctl_hardening found {{ __lh_sysctl_blocking | length }} deviation(s)."
   vars:
+    __lh_sysctl_post_remediation: "{{ __lh_sysctl_audit_fatal | default(false) }}"
     __lh_sysctl_blocking: >-
-      {{ linux_hardening_sysctl_findings
-         if (linux_hardening_fail_on_error | bool) and not (__lh_sysctl_audit_fatal | default(false))
-         else linux_hardening_sysctl_findings | selectattr('fixable') | list
-         if (__lh_sysctl_audit_fatal | default(false)) else [] }}
+      {{ linux_hardening_sysctl_findings | selectattr('fixable') | list
+         if __lh_sysctl_post_remediation
+         else (linux_hardening_sysctl_findings if linux_hardening_fail_on_error | bool else []) }}
   when: __lh_sysctl_blocking | length > 0

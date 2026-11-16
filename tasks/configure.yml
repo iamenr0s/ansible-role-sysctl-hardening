@@ -10,9 +10,9 @@
       Kubernetes networking. Set linux_hardening_sysctl_ip_forward: true to keep it, or
       linux_hardening_sysctl_confirm_disable_forwarding: true to proceed.
     quiet: true
-  when: >-
-    __lh_sysctl_state | selectattr('key', 'eq', 'net.ipv4.ip_forward')
-    | selectattr('actual', 'eq', '1') | selectattr('expected', 'eq', '0') | list | length > 0
+  vars:
+    __lh_sysctl_ipfwd: "{{ __lh_sysctl_state | selectattr('key', 'eq', 'net.ipv4.ip_forward') | first | default({}) }}"
+  when: __lh_sysctl_ipfwd.actual | default('') == '1' and __lh_sysctl_ipfwd.expected | default('') == '0'
 
 - name: Ensure the sysctl.d directory exists
   ansible.builtin.file:
@@ -40,7 +40,6 @@
   ansible.builtin.package:
     name: "{{ 'procps-ng' if ansible_facts['os_family'] == 'RedHat' else 'procps' }}"
     state: present
-    update_cache: true
 
 # Two phases: forwarding keys reset other keys (accept_redirects & co.) in the kernel, so apply them,
 # re-read the live state, then apply whatever still differs.
@@ -62,12 +61,7 @@
 
 - name: Collect the settings the kernel refused
   ansible.builtin.set_fact:
-    __lh_sysctl_failed: >-
-      {%- set out = [] -%}
-      {%- for s in __lh_sysctl_state if s.actual != s.expected -%}
-      {%- set _ = out.append(s.key) -%}
-      {%- endfor -%}
-      {{ out }}
+    __lh_sysctl_failed: "{{ __lh_sysctl_state | rejectattr('match') | map(attribute='key') | list }}"
 
 - name: Stop if settings could not be applied
   ansible.builtin.fail:

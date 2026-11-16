@@ -3,12 +3,9 @@
 # warning when /proc/sys is read-only, so refusals are detected by re-reading the values (configure.yml).
 - name: Set the running values that differ
   ansible.builtin.command: "sysctl -w {{ item.key }}={{ item.expected }}"
-  loop: >-
-    {{ (__lh_sysctl_state | selectattr('key', 'search', '(ip_forward|forwarding)$') | list) if __lh_sysctl_forwarding
-       else (__lh_sysctl_state | rejectattr('key', 'search', '(ip_forward|forwarding)$') | list) }}
+  loop: "{{ __lh_sysctl_state | selectattr('forwarding', 'eq', __lh_sysctl_forwarding) | rejectattr('match') | list }}"
   loop_control:
     label: "{{ item.key }}"
   register: __lh_sysctl_set
   changed_when: __lh_sysctl_set.rc == 0 and __lh_sysctl_set.stderr == ''
   failed_when: false
-  when: item.actual != item.expected

@@ -1,6 +1,9 @@
 ---
+# Keys whose change makes the kernel reset other keys; they are applied and persisted first.
+__lh_sysctl_forwarding_re: '(ip_forward|forwarding)$'
+
 # Our own selection from common hardening guidance. NOT a verified CIS mapping (all entries unmapped).
-__linux_hardening_sysctl_base:
+__lh_sysctl_base:
   net.ipv4.conf.all.send_redirects: 0
   net.ipv4.conf.default.send_redirects: 0
   net.ipv4.conf.all.accept_redirects: 0
@@ -26,7 +29,7 @@ __linux_hardening_sysctl_base:
   fs.protected_hardlinks: 1
   fs.protected_symlinks: 1
 # Added when linux_hardening_profile is cis_level2. Keys missing on a kernel are skipped.
-__linux_hardening_sysctl_strict:
+__lh_sysctl_strict:
   kernel.sysrq: 0
   fs.protected_fifos: 2
   fs.protected_regular: 2
