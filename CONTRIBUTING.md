@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for taking the time to contribute to `iamenr0s.ansible_role_upgrade`!
+Thanks for taking the time to contribute to `iamenr0s.sysctl_hardening`!
 
 ## Getting started
 
