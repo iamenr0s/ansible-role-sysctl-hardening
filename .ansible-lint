@@ -3,6 +3,9 @@ profile: production
 exclude_paths:
   - .github/
   - .ansible/
+# Opt-in: task names in tasks/<file>.yml start with '<file> | ' (CoP: prefix sub-task names).
+enable_list:
+  - name[prefix]
 skip_list:
   # Collection convention is linux_hardening_<domain>_*, not <role_name>_* (docs/architecture.md).
   - var-naming[no-role-prefix]

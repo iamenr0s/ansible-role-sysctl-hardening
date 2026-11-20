@@ -1,7 +1,7 @@
 ---
 # Applies the differing keys of one phase (forwarding keys or the rest). Some procps builds exit 0 with a
 # warning when /proc/sys is read-only, so refusals are detected by re-reading the values (configure.yml).
-- name: Set the running values that differ
+- name: apply_running | Set the running values that differ
   ansible.builtin.command: "sysctl -w {{ item.key }}={{ item.expected }}"
   loop: "{{ __lh_sysctl_state | selectattr('forwarding', 'eq', __lh_sysctl_forwarding) | rejectattr('match') | list }}"
   loop_control:
