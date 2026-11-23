@@ -1,7 +1,7 @@
 ---
 # Read-only. Sets __lh_sysctl_state: [{key, expected, actual, match, forwarding}] for keys that exist on this kernel,
 # and __lh_sysctl_unavailable for keys that do not.
-- name: Build the desired settings
+- name: facts | Build the desired settings
   ansible.builtin.set_fact:
     __lh_sysctl_desired: >-
       {{ __lh_sysctl_base
@@ -18,7 +18,7 @@
          | combine(linux_hardening_sysctl_overrides)
          | dict2items | rejectattr('value', 'none') | items2dict }}
 
-- name: Read the running values (a missing file means the key does not exist on this kernel)
+- name: facts | Read the running values (a missing file means the key does not exist on this kernel)
   ansible.builtin.slurp:
     src: "/proc/sys/{{ item.key | replace('.', '/') }}"
   loop: "{{ __lh_sysctl_desired | dict2items }}"
@@ -28,14 +28,14 @@
   failed_when: false
   check_mode: false
 
-- name: Split into available and unavailable
+- name: facts | Split into available and unavailable
   ansible.builtin.set_fact:
     __lh_sysctl_avail: "{{ __lh_sysctl_reads.results | selectattr('content', 'defined') | list }}"
     __lh_sysctl_unavailable: "{{ __lh_sysctl_reads.results | rejectattr('content', 'defined') | map(attribute='item.key') | list }}"
 
 # Forwarding keys come first: switching forwarding resets accept_redirects & co. in the kernel, so they
 # must be written (now, and when sysctl --system replays the file at boot) before the settings they reset.
-- name: Compare running with desired values (forwarding keys first, the rest sorted)
+- name: facts | Compare running with desired values (forwarding keys first, the rest sorted)
   ansible.builtin.set_fact:
     __lh_sysctl_state: >-
       {%- set out = [] -%}
