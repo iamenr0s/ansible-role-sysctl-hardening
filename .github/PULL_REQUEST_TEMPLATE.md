@@ -15,7 +15,7 @@ What does this PR change and why?
 
 - [ ] `yamllint .` passes
 - [ ] `ansible-lint` passes
-- [ ] `molecule test` passes locally (state the distro(s) tested, e.g. `MOLECULE_DISTRO=debian12`)
+- [ ] `molecule test --all --exclude vagrant --exclude vagrant-relabel` passes locally (state the distro(s) tested, e.g. `MOLECULE_DISTRO=debian12`)
 - [ ] New/changed variables are documented in `README.md` and defaulted in `defaults/main.yml`
 - [ ] Follows the [contributing guidelines](../CONTRIBUTING.md)
 

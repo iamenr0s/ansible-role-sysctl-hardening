@@ -13,7 +13,7 @@ Only the latest released version of this role receives security fixes.
 
 Please **do not** open a public issue for security vulnerabilities.
 
-Instead, report them privately via [GitHub private vulnerability reporting](https://github.com/iamenr0s/ansible-role-upgrade/security/advisories/new).
+Instead, report them privately via [GitHub private vulnerability reporting](https://github.com/iamenr0s/ansible-role-sysctl-hardening/security/advisories/new).
 
 Include a description of the issue, steps to reproduce, and the affected distro/Ansible version if relevant.
 
