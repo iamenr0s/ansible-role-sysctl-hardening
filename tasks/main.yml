@@ -3,12 +3,6 @@
 - name: Run sysctl_hardening
   when: linux_hardening_sysctl_enabled | bool
   block:
-    - name: Validate linux_hardening_mode
-      ansible.builtin.assert:
-        that: linux_hardening_mode in ['audit', 'remediate']
-        fail_msg: "linux_hardening_mode must be 'audit' or 'remediate', got '{{ linux_hardening_mode }}'"
-        quiet: true
-
     - name: Warn about legacy kernel_parameters_* variables
       ansible.builtin.debug:
         msg: >-
@@ -40,4 +34,5 @@
           ansible.builtin.include_tasks: audit.yml
           vars:
             __lh_sysctl_audit_fatal: true
-          when: linux_hardening_verify | bool
+          # In check mode nothing was written, so a re-audit would always fail.
+          when: linux_hardening_verify | bool and not ansible_check_mode

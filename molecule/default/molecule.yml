@@ -16,6 +16,22 @@ platforms:
   pre_build_image: true
   extra_opts:
   - --cgroupns=host
+scenario:
+  # Molecule's default sequence plus check: a dry-run remediate must not fail.
+  test_sequence:
+    - dependency
+    - cleanup
+    - destroy
+    - syntax
+    - create
+    - prepare
+    - check
+    - converge
+    - idempotence
+    - side_effect
+    - verify
+    - cleanup
+    - destroy
 provisioner:
   name: ansible
   playbooks:
