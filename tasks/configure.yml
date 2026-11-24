@@ -69,3 +69,5 @@
   when:
     - __lh_sysctl_failed | length > 0
     - not (linux_hardening_sysctl_ignore_errors | bool)
+    # In check mode sysctl -w is skipped, so every drifted key still differs.
+    - not ansible_check_mode

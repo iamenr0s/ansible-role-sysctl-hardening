@@ -16,36 +16,28 @@ jobs:
     name: Lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7
         with:
           python-version: "3.14"
-      - run: pip install ansible ansible-lint yamllint
-      - run: yamllint .
-      - run: ansible-lint
+      # Same hooks and pinned versions as local pre-commit (bumped by Renovate).
+      - run: pip install pre-commit
+      - run: pre-commit run --all-files --show-diff-on-failure
 
   molecule:
     name: ${{ matrix.distro }}
     runs-on: ubuntu-latest
-    continue-on-error: ${{ matrix.experimental || false }}
     strategy:
       fail-fast: false
       matrix:
         distro: [almalinux9, debian13, ubuntu2404, fedora44, almalinux8, almalinux10, rockylinux9, debian12, ubuntu2204, fedora42, fedora43, rockylinux8, rockylinux10]
         include:
           # EL8 managed-node Python 3.6 needs ansible-core 2.16
-          - {distro: almalinux8, experimental: true, ansible_pin: "ansible<10"}
-          - {distro: almalinux10, experimental: true}
-          - {distro: rockylinux9, experimental: true}
-          - {distro: debian12, experimental: true}
-          - {distro: ubuntu2204, experimental: true}
-          - {distro: fedora42, experimental: true}
-          - {distro: fedora43, experimental: true}
-          - {distro: rockylinux8, experimental: true, ansible_pin: "ansible<10"}
-          - {distro: rockylinux10, experimental: true}
+          - {distro: almalinux8, ansible_pin: "ansible<10"}
+          - {distro: rockylinux8, ansible_pin: "ansible<10"}
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7
         with:
           python-version: "3.14"
       - run: pip install "${{ matrix.ansible_pin || 'ansible' }}" molecule "molecule-plugins[podman]"
@@ -63,11 +55,11 @@ jobs:
     needs: [lint, molecule]
     if: startsWith(github.ref, 'refs/tags/v')
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
         with:
           fetch-depth: 0
       # The ansible-galaxy-action container runs Python 3.15, which breaks ansible-core.
-      - uses: actions/setup-python@v7
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7
         with:
           python-version: "3.14"
       - run: pip install ansible-core

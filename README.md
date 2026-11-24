@@ -30,11 +30,36 @@ Variables use the collection-wide `linux_hardening_*` prefix (shared with siblin
 
 - Order matters: switching `net.ipv4.ip_forward` makes the kernel reset `accept_redirects` and related keys. The role therefore writes the forwarding keys first, re-reads the live values, then applies the rest, and lists forwarding first in the persistent file (so `sysctl --system` at boot behaves the same).
 
+## Role Variables
+
+| Variable | Type | Default | Description |
+|---|---|---|---|
+| `linux_hardening_mode` | str | `audit` | audit is read-only. Choices: `audit`, `remediate`. |
+| `linux_hardening_confirm_remediation` | bool | `false` | Must be true before remediate changes anything. |
+| `linux_hardening_profile` | str | `cis_level1` | cis_level2 adds the stricter settings. Choices: `baseline`, `cis_level1`, `cis_level2`. |
+| `linux_hardening_backup` | bool | `true` | Back up the persistent file when it changes. |
+| `linux_hardening_verify` | bool | `true` | Re-audit after remediation. |
+| `linux_hardening_fail_on_error` | bool | `true` | Fail the play when audit finds deviations. |
+| `linux_hardening_sysctl_enabled` | bool | `true` | Run the role. |
+| `linux_hardening_sysctl_dropin` | path | `/etc/sysctl.d/99-zz-linux-hardening.conf` | Persistent settings file. |
+| `linux_hardening_sysctl_ip_forward` | raw | `false` | Desired net.ipv4.ip_forward (bool, default false); null leaves it unmanaged. |
+| `linux_hardening_sysctl_rp_filter` | raw | `1` | Desired rp_filter (int; 1 strict, 2 loose); null leaves it unmanaged. |
+| `linux_hardening_sysctl_ipv6_accept_ra` | raw | `null` | Desired accept_ra (int); unmanaged by default because 0 can cut IPv6 access. |
+| `linux_hardening_sysctl_confirm_disable_forwarding` | bool | `false` | Allow switching IPv4 forwarding from on to off. |
+| `linux_hardening_sysctl_ignore_errors` | bool | `false` | Continue when the kernel refuses a value; failures stay reported. |
+| `linux_hardening_sysctl_extra` | dict | `{{ kernel_parameters_common \| default({}) }}` | Additional settings as key to value; legacy kernel_parameters_common is honoured. |
+| `linux_hardening_sysctl_overrides` | dict | `{}` | Change a built-in value, or set null to drop it. |
+
+**Idempotent:** yes. A second `remediate` run reports no changes (the Molecule `idempotence` step checks this).
+
+**Check mode:** `remediate` with `--check --diff` shows what would change without writing anything; the post-remediation re-audit is skipped in check mode.
+
 ## Example
 ```yaml
 - hosts: all
+  become: true
   roles:
-    - role: iamenr0s.linux_hardening.sysctl_hardening
+    - role: iamenr0s.sysctl_hardening
       vars:
         linux_hardening_mode: remediate
         linux_hardening_confirm_remediation: true
@@ -42,7 +67,7 @@ Variables use the collection-wide `linux_hardening_*` prefix (shared with siblin
 ```
 
 ## Verification
-Molecule `default`, `strict` (cis_level2), `audit` (writes nothing), `refuse` (forwarding guard) in containers; `vagrant` on a real libvirt VM (writes the live kernel with no `ignore_errors`, checks `sysctl -n`). Tested: AlmaLinux 9 (containers and VM). CI matrix: AlmaLinux 8–10, Rocky 8–10, Fedora 42–44, Debian 12–13, Ubuntu 22.04/24.04.
+Molecule `default`, `strict` (cis_level2), `audit` (writes nothing), `refuse` (remediate refused without confirmation) in containers; `vagrant` on a real libvirt VM (writes the live kernel with no `ignore_errors`, checks `sysctl -n`). Tested: AlmaLinux 9 (containers and VM). CI matrix: AlmaLinux 8–10, Rocky 8–10, Fedora 42–44, Debian 12–13, Ubuntu 22.04/24.04.
 
 ## Rollback
 Delete the drop-in (a backup of any earlier version is kept when `linux_hardening_backup` is true); running values revert at reboot or via `sysctl --system`.
